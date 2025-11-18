@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>calorify-tracker-app</title>
+    <!-- 
+      CORRECCIÓN: Script para evitar el "flash" del modo oscuro (FOUC).
+      Este script se ejecuta de forma síncrona antes de que se renderice el <body>.
+      Lee la preferencia del tema desde localStorage y aplica la clase 'dark' al <html>
+      si es necesario, asegurando que el tema correcto se muestre desde el primer momento.
+    -->
+    <script>
+      (function() {
+        const isDarkMode = localStorage.getItem('Calorify_dark_mode') === 'true';
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        if (isDarkMode || (!('Calorify_dark_mode' in localStorage) && prefersDark)) {
+          document.documentElement.classList.add('dark');
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
