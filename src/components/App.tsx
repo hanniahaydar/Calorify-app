@@ -1,7 +1,6 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { type User, type Page } from '../types/index'; 
-// Componentes de las diferentes pantallas (Nota: Estas rutas pueden necesitar ajuste real).
+// Componentes de las diferentes pantallas
 import AuthScreen from './pages/AuthScreen';
 import TMBSetupScreen from './pages/TMBSetupScreen';
 import Dashboard from './pages/Dashboard/Dashboard';
@@ -13,40 +12,44 @@ import ThemeToggle from './ThemeToggle';
 
 const App: React.FC = () => {
     // 1. Manejo del tema (Modo Oscuro/Claro)
-    // Inicializa el tema actual ('light' o 'dark') y la función para alternarlo.
     const [currentTheme, toggleTheme] = useSimpleTheme();
 
     // Estados principales de la aplicación.
-    const [currentPage, setCurrentPage] = useState<Page>('login'); // Controla qué pantalla se muestra (login, setup, dashboard).
-    const [currentUser, setCurrentUser] = useState<User | null>(null); // Almacena los datos del usuario logueado.
-    const [allUsers, setAllUsers] = useState<Record<string, User>>({}); // Simulación de una base de datos de usuarios (key: username).
+    const [currentPage, setCurrentPage] = useState<Page>('login'); 
+    const [currentUser, setCurrentUser] = useState<User | null>(null); 
+    const [allUsers, setAllUsers] = useState<Record<string, User>>({}); 
 
     // --- Cargar datos de usuarios (Simulación de DB con localStorage) ---
     useEffect(() => {
-        // Carga el mapa completo de usuarios desde localStorage al iniciar.
         const storedUsers = localStorage.getItem('Calorify_users');
         if (storedUsers) {
             setAllUsers(JSON.parse(storedUsers));
         }
 
-        // Intenta recuperar la sesión del último usuario activo.
         const storedUserId = localStorage.getItem('Calorify_current_user_id');
         if (storedUserId) {
-            // Carga los datos del usuario específico.
-            const user = JSON.parse(localStorage.getItem(`Calorify_user_${storedUserId}`) || 'null');
-            if (user) {
+            const storedUserString = localStorage.getItem(`Calorify_user_${storedUserId}`);
+            const storedUser = storedUserString ? JSON.parse(storedUserString) : null;
+            
+            if (storedUser) {
+                // Se asegura que el objeto cargado cumpla con la interfaz User, 
+                // proporcionando fallbacks para propiedades que podrían faltar en datos antiguos.
+                const user: User = {
+                    ...storedUser,
+                    savedRecipes: storedUser.savedRecipes || [], 
+                    dailyLogs: storedUser.dailyLogs || {},
+                    tmbData: storedUser.tmbData || null,
+                };
+                
                 setCurrentUser(user);
-                // Si el usuario tiene TMB configurada, va al dashboard, si no, al setup.
                 setCurrentPage(user.tmbData ? 'dashboard' : 'tmb_setup');
             }
         } else {
-            // Si no hay ID de usuario guardado, muestra el login.
             setCurrentPage('login');
         }
-    }, []); // Se ejecuta solo una vez al montar el componente.
+    }, []); 
     
     // --- FUNCIÓN DE ACTUALIZACIÓN DE USUARIO (Manejo de Reactividad y Persistencia) ---
-    // Memoiza la función para garantizar que no se recree innecesariamente.
     const updateCurrentUser = useCallback((updateFn: (prev: User) => User) => {
         
         let latestUpdatedUser: User | null = null;
@@ -77,7 +80,7 @@ const App: React.FC = () => {
             return updatedAllUsers;
         });
 
-    }, [currentUser]); // Dependencia en currentUser para asegurar el acceso a los datos correctos en el closure.
+    }, [currentUser]); 
     
     // --- LÓGICA DE AUTENTICACIÓN (Login/Register) ---
     const handleAuth = (username: string, type: 'login' | 'register') => {
@@ -91,12 +94,15 @@ const App: React.FC = () => {
                 id: Date.now().toString(), // ID simple basado en tiempo.
                 username: lowerUsername,
                 tmbData: null, // TMB inicialmente nulo (requiere setup).
-                dailyLogs: {}
+                dailyLogs: {},
+                savedRecipes: [], // <-- CORRECCIÓN: Soluciona el error de propiedad faltante
             };
             setAllUsers(prev => ({ ...prev, [lowerUsername]: user! })); // Añade el nuevo usuario al mapa.
         // Lógica para iniciar sesión.
         } else if (type === 'login' && allUsers[lowerUsername]) {
             user = allUsers[lowerUsername];
+            // Asegura que el usuario viejo tenga 'savedRecipes' al iniciar sesión
+            user.savedRecipes = user.savedRecipes || [];
         }
 
         // Si se encuentra o crea el usuario, establece la sesión.
